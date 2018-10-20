@@ -21,17 +21,18 @@ ADD_POST = \
     "VALUES " \
     "(%(FB_ID)s, %(Link)s, %(Post_Date)s, %(Content)s, %(Main_Image)s, %(Type)s, %(Title)s, %(Poster_Name)s, %(Poster_Link)s, %(Poster_Img)s, %(Created_Date)s, %(Update_Date)s) " \
     "ON DUPLICATE KEY UPDATE " \
-    "Content=VALUES(Content)"
+    "Content=VALUES(Content), Update_Date=VALUES(Update_Date)"
 
 ADD_TRACK = \
     "INSERT INTO FB_Track " \
-    "(FB_ID, Views, Comments, Shares, Reactions, Clicks) " \
+    "(FB_ID, Views, Comments, Shares, Reactions, Clicks, Update_Date) " \
     "VALUES " \
-    "(%(FB_ID)s, %(Views)s, %(Comments)s, %(Shares)s, %(Reactions)s, %(Clicks)s) " \
+    "(%(FB_ID)s, %(Views)s, %(Comments)s, %(Shares)s, %(Reactions)s, %(Clicks)s, %(Update_Date)s) " \
     "ON DUPLICATE KEY UPDATE " \
     "Views=VALUES(Views), " \
     "Comments=VALUES(Comments), " \
     "Shares=VALUES(Shares), " \
+    "Update_Date=VALUES(Update_Date), " \
     "Reactions=VALUES(Reactions) "
 
 ADD_TREND = "INSERT IGNORE INTO FB_Trends (FB_ID) VALUES  (%(FB_ID)s)"
@@ -52,8 +53,9 @@ def prepare_track_frame(track):
 
     keys = { 'id': 'FB_ID', 'views': 'Views', 'comment': 'Comments', 
         'share': 'Shares', 'reactions': 'Reactions', 'clicks': 'Clicks' }
-    # Updated_Date
-    return { c: track.get(k) for k, c in keys.items() }
+    track = { c: track.get(k) for k, c in keys.items() }
+    track['Update_Date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return track
 
 def insert_post_db(data):
 
