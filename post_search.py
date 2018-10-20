@@ -8,7 +8,6 @@ import re
 import argparse
 import datetime as dt
 import database
-import getpass
 import pdb
 
 from selenium import webdriver
@@ -43,17 +42,6 @@ def login(driver, username, password):
 
 
 def prepare_driver(*args, **kwargs):
-    # # Chrome
-    # opts = webdriver.ChromeOptions()
-    # opts.add_experimental_option('prefs', {
-    #     'profile.default_content_setting_values.notifications': 2 })
-    # opts.add_argument('headless')
-
-    # # Invalid syntax?
-    # driver = webdriver.Chrome(*args, **kwargs, 
-    #         chrome_options=opts)
-
-    # Firefox
     prof = webdriver.FirefoxProfile()
     prof.set_preference('dom.webnotifications.enabled', False)
 
@@ -352,13 +340,8 @@ def kwargs_from_cmd(args):
     return kwargs
 
 def main():
-    # Parse arguments to send the scrape function
     args = prepare_args()
 
-    # username = input('Facebook username: ')
-    # password = getpass.getpass('Password: ')
-
-    # Start selenium
     print('Starting selenium...')
     driver = prepare_driver(executable_path=args.chrome_path)
 

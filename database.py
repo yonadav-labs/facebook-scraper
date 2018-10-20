@@ -15,7 +15,7 @@ config = {
 
 ADD_POST = \
     "INSERT INTO FB_Post " \
-    "(FB_ID, Link, Post_Date, Content, Main_Image, Type, Title) " \
+    "(FB_ID, Link, Post_Date, Content, Main_Image, Post_Type, Title) " \
     "VALUES " \
     "(%(FB_ID)s, %(Link)s, %(Post_Date)s, %(Content)s, %(Main_Image)s, %(Type)s, %(Title)s) " \
     "ON DUPLICATE KEY UPDATE " \
