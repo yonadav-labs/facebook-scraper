@@ -8,6 +8,7 @@ import re
 import argparse
 import datetime as dt
 import database
+import requests
 import pdb
 
 from selenium import webdriver
@@ -22,6 +23,10 @@ from dateutil.relativedelta import relativedelta
 LOGIN_URL = 'https://www.facebook.com/'
 THRESHOLD = 1000
 N = 5
+
+SCRAPE_POST = 0
+SCRAPE_VIDEO = 1
+PUT_DATABASE = 0
 
 def wait_for_elem(driver, query, timeout=300):
     event = EC.element_to_be_clickable((By.CSS_SELECTOR, query))
@@ -112,12 +117,17 @@ def post_data(post):
     data['media'] = media.get('src') if media else ''
     data['type'] = "post"
 
+    # get poster info
+    poster = post.select_one('a._vwp')
+    if poster:
+        data['poster_link'] = poster.get('href')
+        data['poster_name'] = poster.text
+        data['poster_image'] = post.select_one('img._s0._4ooo._tzw.img').get('src')
+
     return data
 
 
 def video_data(post):
-    # pdb.set_trace()
-
     data = {}
     data['title'] = post.select_one('._4ovi').text if post.select_one('._4ovi') else ''
     data['content'] = post.select_one('._4ovj').text if post.select_one('._4ovj') else ''
@@ -149,8 +159,6 @@ def video_data(post):
     return data
 
 def post_criteria(d, keyword, comment, shares, views, reactions, startdate, enddate):
-    # return True
-    # pdb.set_trace()
     if d['type'] == 'post':
         if comment and d.get('comment', -1) < comment: 
             return False
@@ -186,77 +194,79 @@ def scrape(driver, keyword=[], comments=None,
     args  = ( keyword, comments, shares, views, reactions, startdate, enddate )
     time.sleep(5)
 
-    # search post
-    count = 0   
-    SEARCH_URL = 'https://www.facebook.com/search/str/{}/stories-keyword/stories-public'.format(keyword)
-    driver.get(SEARCH_URL)
-    count_ = []
-    finish_flag = False
+    if SCRAPE_POST:
+        # search post
+        count = 0   
+        SEARCH_URL = 'https://www.facebook.com/search/str/{}/stories-keyword/stories-public'.format(keyword)
+        driver.get(SEARCH_URL)
+        count_ = []
+        finish_flag = False
 
-    while True:
-        soup  = BeautifulSoup(driver.page_source, 'html.parser')
-        posts = soup.select('._401d')
-        print(len(posts), 'Posts found inside html!')
+        while True:
+            soup  = BeautifulSoup(driver.page_source, 'html.parser')
+            posts = soup.select('._401d')
+            print(len(posts), 'Posts found inside html!')
 
-        count_.append(len(posts))
-        if len(count_) > N and sum(count_[-N:]) == N * count_[-1]:
-            # no more new posts
-            break
+            count_.append(len(posts))
+            if len(count_) > N and sum(count_[-N:]) == N * count_[-1]:
+                # no more new posts
+                break
 
-        for i in range(count, len(posts)):
+            for i in range(count, len(posts)):
 
-            data = post_data(posts[i])
-            if post_criteria(data, *args):
-                count += 1
-                yield data
-                if count == THRESHOLD or limit and count == limit: 
-                    finish_flag = True
-                    break
+                data = post_data(posts[i])
+                if post_criteria(data, *args):
+                    count += 1
+                    yield data
+                    if count == THRESHOLD or limit and count == limit: 
+                        finish_flag = True
+                        break
 
-        if finish_flag: 
-            break
+            if finish_flag: 
+                break
 
-        if len(posts) > 0:
-            script = 'window.scrollTo(0, document.body.scrollHeight);'
-            driver.execute_script(script)
+            if len(posts) > 0:
+                script = 'window.scrollTo(0, document.body.scrollHeight);'
+                driver.execute_script(script)
 
-        time.sleep(0.5)
+            time.sleep(0.5)
 
-    # search video
-    count = 0   
-    SEARCH_URL = 'https://www.facebook.com/search/videos/?q=' + keyword
-    driver.get(SEARCH_URL)
-    count_ = []
-    finish_flag = False
+    if SCRAPE_VIDEO:
+        # search video
+        count = 0   
+        SEARCH_URL = 'https://www.facebook.com/search/videos/?q=' + keyword
+        driver.get(SEARCH_URL)
+        count_ = []
+        finish_flag = False
 
-    while True:
-        soup  = BeautifulSoup(driver.page_source, 'html.parser')
-        videos = soup.select('._6rba')
-        print(len(videos), 'Videos found inside html!')
+        while True:
+            soup  = BeautifulSoup(driver.page_source, 'html.parser')
+            videos = soup.select('._6rba')
+            print(len(videos), 'Videos found inside html!')
 
-        count_.append(len(videos))
-        if len(count_) > N and sum(count_[-N:]) == N * count_[-1]:
-            # no more new videos
-            break
+            count_.append(len(videos))
+            if len(count_) > N and sum(count_[-N:]) == N * count_[-1]:
+                # no more new videos
+                break
 
-        for i in range(count, len(videos)):
+            for i in range(count, len(videos)):
 
-            data = video_data(videos[i])
-            if post_criteria(data, *args):
-                count += 1
-                yield data
-                if count == THRESHOLD or limit and count == limit: 
-                    finish_flag = True
-                    break
+                data = video_data(videos[i])
+                if post_criteria(data, *args):
+                    count += 1
+                    yield data
+                    if count == THRESHOLD or limit and count == limit: 
+                        finish_flag = True
+                        break
 
-        if finish_flag: 
-            break
+            if finish_flag: 
+                break
 
-        if len(videos) > 0:
-            script = 'window.scrollTo(0, document.body.scrollHeight);'
-            driver.execute_script(script)
+            if len(videos) > 0:
+                script = 'window.scrollTo(0, document.body.scrollHeight);'
+                driver.execute_script(script)
 
-        time.sleep(0.5)
+            time.sleep(0.5)
 
 
 def prepare_args():
@@ -356,22 +366,54 @@ def main():
         'video': []    
     }
 
+    click_links = [ 'bit.ly', 'goo.gl', 'bitly.com' ]
+    headers = { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36' }
+
     for data in scrape(driver, **kwargs):
         try:
             results[data['type']].append(data)
             print('Posts: {}, Videos: {} found'.format(len(results['post']), len(results['video'])))
 
+            # get clicks
+            for ii in click_links:
+                try:
+                    rr = r'[\s+/+]{}/[^\s]+'.format(ii)
+                    match = re.search(rr, data.get('content'))
+                    url = match.group(0).strip().strip('/')
+                    url = 'https://{}+'.format(url)
+
+                    if ii == 'goo.gl':
+                        driver.get(url)
+                        soup  = BeautifulSoup(driver.page_source, 'html.parser')
+                        count = soup.select_one('.count')
+                        data['clicks'] = count.text
+                        break
+                    else:
+                        page_source = requests.get(url, headers=headers).text
+                        match = re.search(r'\{.+user_clicks.+\}', page_source)
+                        data['clicks'] = json.loads(match.group(0))['user_clicks']
+                        break
+                except Exception as e:
+                    pass
+
             # Write info into database
             if data['type'] == 'post':
-                database.insert_post_db(data)
+                if PUT_DATABASE:
+                    database.insert_post_db(data)
         except KeyboardInterrupt: 
             break
 
     for video in results['video']:
-        # pdb.set_trace()
         driver.get(video['url'])
         soup  = BeautifulSoup(driver.page_source, 'html.parser')
         post = soup.select_one('._437j')
+
+        # get poster info
+        poster = post.select_one('a._371y')
+        if poster:
+            video['poster_link'] = poster.get('href')
+            video['poster_name'] = poster.text
+            video['poster_image'] = post.select_one('img._s0._4ooo._44ma._54ru.img').get('src')
 
         reactions = post.select('._3emk')
         video['reactions'] = 0
@@ -384,7 +426,9 @@ def main():
                 video['comment'] = parse_counter(anchor.text.split()[0].casefold())
             elif 'share' in anchor.text.casefold(): 
                 video['share'] = parse_counter(anchor.text.split()[0].casefold())
-        database.insert_post_db(video)
+
+        if PUT_DATABASE:
+            database.insert_post_db(video)
         
     with open('results.json','w') as fp:
         json.dump(results['post']+results['video'], fp, indent=2)
