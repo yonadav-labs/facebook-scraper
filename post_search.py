@@ -155,6 +155,12 @@ def video_data(post):
     media = post.select_one('._46-i.img')
     data['media'] = media.get('src') if media else ''
     data['type'] = "video"
+    # get poster info
+    poster = post.select_one('.fwb a')
+    if poster:
+        data['poster_link'] = poster.get('href')
+        data['poster_name'] = poster.text
+        data['poster_image'] = ' '
 
     return data
 
@@ -321,8 +327,7 @@ def prepare_args():
 
 def kwargs_from_cmd(args):
 
-    keys = ('keyword', 'comments', 'shares', 
-        'views', 'reactions', 'limit')
+    keys = ('keyword', 'comments', 'shares', 'views', 'reactions', 'limit')
     kwargs = { k: getattr(args, k) for k in keys }
 
     # Calcute start date from arguments
@@ -409,11 +414,9 @@ def main():
         post = soup.select_one('._437j')
 
         # get poster info
-        poster = post.select_one('a._371y')
+        poster = post.select_one('img._s0._4ooo._44ma._54ru.img')
         if poster:
-            video['poster_link'] = poster.get('href')
-            video['poster_name'] = poster.text
-            video['poster_image'] = post.select_one('img._s0._4ooo._44ma._54ru.img').get('src')
+            video['poster_image'] = poster.get('src')
 
         reactions = post.select('._3emk')
         video['reactions'] = 0
