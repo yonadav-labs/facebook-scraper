@@ -24,9 +24,9 @@ LOGIN_URL = 'https://www.facebook.com/'
 THRESHOLD = 1000
 N = 5
 
-SCRAPE_POST = 0
+SCRAPE_POST = 1
 SCRAPE_VIDEO = 1
-PUT_DATABASE = 0
+PUT_DATABASE = 1
 
 def wait_for_elem(driver, query, timeout=300):
     event = EC.element_to_be_clickable((By.CSS_SELECTOR, query))
