@@ -3,6 +3,8 @@
 
 import mysql.connector as sql
 import json
+import datetime
+
 
 config = {
     'user': 'orchid_staging',
@@ -15,9 +17,9 @@ config = {
 
 ADD_POST = \
     "INSERT INTO FB_Post " \
-    "(FB_ID, Link, Post_Date, Content, Main_Image, Post_Type, Title, Poster_Name, Poster_Link, Poster_Img) " \
+    "(FB_ID, Link, Post_Date, Content, Main_Image, Post_Type, Title, Poster_Name, Poster_Link, Poster_Img, Created_Date, Update_Date) " \
     "VALUES " \
-    "(%(FB_ID)s, %(Link)s, %(Post_Date)s, %(Content)s, %(Main_Image)s, %(Type)s, %(Title)s, %(Poster_Name)s, %(Poster_Link)s, %(Poster_Img)s) " \
+    "(%(FB_ID)s, %(Link)s, %(Post_Date)s, %(Content)s, %(Main_Image)s, %(Type)s, %(Title)s, %(Poster_Name)s, %(Poster_Link)s, %(Poster_Img)s, %(Created_Date)s, %(Update_Date)s) " \
     "ON DUPLICATE KEY UPDATE " \
     "Content=VALUES(Content)"
 
@@ -39,9 +41,12 @@ def prepare_post_frame(post):
              'content': 'Content', 'media': 'Main_Image', 'type': 'Type', 
              'poster_name': 'Poster_Name', 'poster_link': 'Poster_Link', 'poster_image': 'Poster_Img' 
             }
-    # Created_Date
-    # Updated_Date
-    return { c: post.get(k) for k, c in keys.items() }
+
+    post = { c: post.get(k) for k, c in keys.items() }
+    post['Created_Date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    post['Update_Date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    return post
 
 def prepare_track_frame(track):
 
