@@ -1,4 +1,4 @@
-.json
+*.json
 geckodriver
 geckodriver.log
 __pycache__
