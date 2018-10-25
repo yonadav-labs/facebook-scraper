@@ -68,8 +68,8 @@ def insert_post_db(data):
     cursor = cnx.cursor()
     cursor.execute("SET NAMES utf8mb4;") 
     cursor.execute(ADD_POST, post)
-    cursor.execute(ADD_TRACK, track)
     cursor.execute(ADD_TREND, { 'FB_ID': data['id'] })
+    cursor.execute(ADD_TRACK, track)
 
     print('Inserted post', cursor.lastrowid)
     cnx.commit()
