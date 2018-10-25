@@ -414,7 +414,7 @@ def main():
         soup  = BeautifulSoup(driver.page_source, 'html.parser')
 
         if video['type'] == 'post':
-            pdb.set_trace()
+            # pdb.set_trace()
             post = soup.select_one('._1dwg')
             if post:
                 img = post.select_one('.uiScaledImageContainer img')
