@@ -199,6 +199,7 @@ def scrape(driver, keyword=[], comments=None,
         limit=None, startdate=None, enddate=None):
     args  = ( keyword, comments, shares, views, reactions, startdate, enddate )
     time.sleep(5)
+    ids = []
 
     if SCRAPE_POST:
         # search post
@@ -222,11 +223,13 @@ def scrape(driver, keyword=[], comments=None,
 
                 data = post_data(posts[i])
                 if post_criteria(data, *args):
-                    count += 1
-                    yield data
-                    if count == THRESHOLD or limit and count == limit: 
-                        finish_flag = True
-                        break
+                    if data['id'] not in ids:
+                        ids.append(data['id'])
+                        count += 1
+                        yield data
+                        if count == THRESHOLD or limit and count == limit: 
+                            finish_flag = True
+                            break
 
             if finish_flag: 
                 break
@@ -259,11 +262,13 @@ def scrape(driver, keyword=[], comments=None,
 
                 data = video_data(videos[i])
                 if post_criteria(data, *args):
-                    count += 1
-                    yield data
-                    if count == THRESHOLD or limit and count == limit: 
-                        finish_flag = True
-                        break
+                    if data['id'] not in ids:
+                        ids.append(data['id'])
+                        count += 1
+                        yield data
+                        if count == THRESHOLD or limit and count == limit: 
+                            finish_flag = True
+                            break
 
             if finish_flag: 
                 break
@@ -401,34 +406,43 @@ def main():
                 except Exception as e:
                     pass
 
-            # Write info into database
-            if data['type'] == 'post':
-                if PUT_DATABASE:
-                    database.insert_post_db(data)
         except KeyboardInterrupt: 
             break
 
-    for video in results['video']:
+    for video in results['post'] + results['video']:
         driver.get(video['url'])
         soup  = BeautifulSoup(driver.page_source, 'html.parser')
-        post = soup.select_one('._437j')
 
-        # get poster info
-        poster = post.select_one('img._s0._4ooo._44ma._54ru.img')
-        if poster:
-            video['poster_image'] = poster.get('src')
+        if video['type'] == 'post':
+            pdb.set_trace()
+            post = soup.select_one('._1dwg')
+            if post:
+                img = post.select_one('.uiScaledImageContainer img')
+                if img:
+                    video['media'] = img.get('src')
+                else:
+                    img = post.select_one('img._3chq')
+                    if img:
+                        video['media'] = img.get('src')
+        else:
+            post = soup.select_one('._437j')
 
-        reactions = post.select('._3emk')
-        video['reactions'] = 0
-        for reaction in reactions:
-            video['reactions'] += parse_counter(reaction.text.casefold())
+            # get poster info
+            poster = post.select_one('img._s0._4ooo._44ma._54ru.img')
+            if poster:
+                video['poster_image'] = poster.get('src')
 
-        anchors = post.select('._ipo a')
-        for anchor in anchors:
-            if 'comment' in anchor.text.casefold(): 
-                video['comment'] = parse_counter(anchor.text.split()[0].casefold())
-            elif 'share' in anchor.text.casefold(): 
-                video['share'] = parse_counter(anchor.text.split()[0].casefold())
+            reactions = post.select('._3emk')
+            video['reactions'] = 0
+            for reaction in reactions:
+                video['reactions'] += parse_counter(reaction.text.casefold())
+
+            anchors = post.select('._ipo a')
+            for anchor in anchors:
+                if 'comment' in anchor.text.casefold(): 
+                    video['comment'] = parse_counter(anchor.text.split()[0].casefold())
+                elif 'share' in anchor.text.casefold(): 
+                    video['share'] = parse_counter(anchor.text.split()[0].casefold())
 
         if PUT_DATABASE:
             database.insert_post_db(video)
