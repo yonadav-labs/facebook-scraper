@@ -26,7 +26,7 @@ N = 5
 
 SCRAPE_POST = 1
 SCRAPE_VIDEO = 1
-PUT_DATABASE = 1
+PUT_DATABASE = 0
 
 def wait_for_elem(driver, query, timeout=300):
     event = EC.element_to_be_clickable((By.CSS_SELECTOR, query))
@@ -372,7 +372,7 @@ def main():
     # Login into facebook
     print('Login into facebook...')
     login(driver, args.username, args.password)
-
+    # pdb.set_trace()
     kwargs = kwargs_from_cmd(args)
 
     results = {
@@ -415,6 +415,7 @@ def main():
 
     for video in results['post'] + results['video']:
         driver.get(video['url'])
+        time.sleep(0.5)
         soup  = BeautifulSoup(driver.page_source, 'html.parser')
 
         if video['type'] == 'post':
