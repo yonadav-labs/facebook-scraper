@@ -118,12 +118,16 @@ def post_data(post):
     data['type'] = "post"
 
     # get poster info
+    data['poster_image'] = (post.select_one('img._s0._4ooo._tzw.img') or {}).get('src')
     poster = post.select_one('a._vwp')
     if poster:
         data['poster_link'] = poster.get('href')
         data['poster_name'] = poster.text
-        data['poster_image'] = post.select_one('img._s0._4ooo._tzw.img').get('src')
-
+    else:
+        poster = post.select_one('a.profileLink')
+        if poster:
+            data['poster_link'] = poster.get('href')
+            data['poster_name'] = poster.text
     return data
 
 
