@@ -36,6 +36,15 @@ def wait_for_elem(driver, query, timeout=300):
 
 
 def login(driver, username, password):
+    try:
+        with open('proxy-list.json') as f:
+            proxies = json.loads(f.read())
+        for ii in proxies:
+            driver.set_proxy(ii.split(':')[0], ii.split(':')[1])
+            break
+    except:
+        pass
+
     driver.get(LOGIN_URL)
 
     elem = wait_for_elem(driver, '#email')
